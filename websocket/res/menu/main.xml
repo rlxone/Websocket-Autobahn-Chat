@@ -1,0 +1,8 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.example.websocket.MainActivity" >
+
+    <item android:id="@+id/action_disconnect" android:orderInCategory="100" android:showAsAction="never" android:title="@string/action_disconnect" android:checked="false" /><item android:id="@+id/action_connect" android:title="@string/action_connect"></item>
+    
+
+</menu>
