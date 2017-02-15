@@ -126,68 +126,49 @@ public class MainActivity extends Activity {
         }
     };
     
-    public void onTextMessage(String message) {
+    public ChatMessage giveMeChatMessage(String message, UserType userType) {
     	ChatMessage chatMessage = new ChatMessage();
     	chatMessage.setMessageText(message);
-    	chatMessage.setUserType(UserType.Server);
+    	chatMessage.setUserType(userType);
     	chatMessage.setMessageTime(new SimpleDateFormat("dd-MM-yyyy HH:mm").format(new java.util.Date()));
-    	chatMessagesList.add(chatMessage);
+    	return chatMessage;
+    }
+    
+    public void onTextMessage(String message) {
+    	chatMessagesList.add(giveMeChatMessage(message, UserType.Server));
     	chatListView.invalidateViews();
     }
     
     public void onSendMessage(String message) {
-    	ChatMessage chatMessage = new ChatMessage();
-    	chatMessage.setMessageText(message);
-    	chatMessage.setUserType(UserType.Me);
-    	chatMessage.setMessageTime(new SimpleDateFormat("dd-MM-yyyy HH:mm").format(new java.util.Date()));
-    	chatMessagesList.add(chatMessage);
+    	chatMessagesList.add(giveMeChatMessage(message, UserType.Me));
     	chatListView.invalidateViews();
     }
 
     public void onConnected(Map<String, List<String>> headers) throws Exception {
-    	ChatMessage chatMessage = new ChatMessage();
-    	chatMessage.setMessageText("Connected");
-    	chatMessage.setUserType(UserType.Service);
-    	chatMessage.setMessageTime(new SimpleDateFormat("dd-MM-yyyy HH:mm").format(new java.util.Date()));
-    	chatMessagesList.add(chatMessage);
+    	chatMessagesList.add(giveMeChatMessage("Connected", UserType.Service));
     	chatListView.invalidateViews();
     	getActionBar().setIcon(R.drawable.ic_smiles_smile_active);
     }
 
     public void onError(WebSocketException cause) {
-    	ChatMessage chatMessage = new ChatMessage();
-    	chatMessage.setMessageText("Error");
-    	chatMessage.setUserType(UserType.Service);
-    	chatMessage.setMessageTime(new SimpleDateFormat("dd-MM-yyyy HH:mm").format(new java.util.Date()));
-    	chatMessagesList.add(chatMessage);
+    	chatMessagesList.add(giveMeChatMessage("Error", UserType.Service));
     	chatListView.invalidateViews();
     }
 
     public void onDisconnected(WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame,
                                boolean closedByServer) {
-    	ChatMessage chatMessage = new ChatMessage();
-    	chatMessage.setMessageText("Disconnect");
-    	chatMessage.setUserType(UserType.Service);
-    	chatMessage.setMessageTime(new SimpleDateFormat("dd-MM-yyyy HH:mm").format(new java.util.Date()));
-    	chatMessagesList.add(chatMessage);
+    	chatMessagesList.add(giveMeChatMessage("Disconnect", UserType.Service));
     	chatListView.invalidateViews();
     	getActionBar().setIcon(R.drawable.ic_smiles_smile);
     }
     
     public void onUnexpectedError(WebSocketException cause) {
-    	ChatMessage chatMessage = new ChatMessage();
-    	chatMessage.setMessageText("Unexpected Error");
-    	chatMessage.setUserType(UserType.Service);
-    	chatMessage.setMessageTime(new SimpleDateFormat("dd-MM-yyyy HH:mm").format(new java.util.Date()));
-    	chatMessagesList.add(chatMessage);
+    	chatMessagesList.add(giveMeChatMessage("Unexpected Error", UserType.Service));
     	chatListView.invalidateViews();;
     }
 
     public void onPongFrame(WebSocketFrame frame) throws Exception {
-    	ChatMessage chatMessage = new ChatMessage();
-    	chatMessage.setMessageText("Pong");
-    	chatMessage.setUserType(UserType.Service);
-    	chatMessage.setMessageTime(new SimpleDateFormat("dd-MM-yyyy HH:mm").format(new java.util.Date()));
+    	chatMessagesList.add(giveMeChatMessage("Pong", UserType.Service));
     	//chatListView.invalidateViews();
     }
     
