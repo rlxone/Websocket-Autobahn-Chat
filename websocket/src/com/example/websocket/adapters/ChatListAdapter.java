@@ -8,8 +8,6 @@ import com.example.websocket.R.id;
 import com.example.websocket.R.layout;
 import com.example.websocket.model.ChatMessage;
 import com.example.websocket.model.UserType;
-import com.example.websocket.model.ViewHolder;
-
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +19,18 @@ public class ChatListAdapter extends BaseAdapter {
     Context context;
     List<ChatMessage> data = new ArrayList<>();
 
+    static class ViewHolder1 {
+        public TextView authorView;
+        public TextView textView;
+        public TextView timeView;
+    }	
+    
+    static class ViewHolder2 {
+        public TextView authorView;
+        public TextView textView;
+        public TextView timeView;
+    }	
+    
     public ChatListAdapter(Context context, List<ChatMessage> data) {
         this.context = context;
         this.data = data;
@@ -44,44 +54,58 @@ public class ChatListAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
     	View view = convertView;
-        ViewHolder viewHolder;
-        if (view == null) {
-        	viewHolder = new ViewHolder();
-        	LayoutInflater inflater = (LayoutInflater) context
-        			.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        	switch (data.get(position).getUserType()) {
-        	case Server:
+        ViewHolder1 viewHolder1;
+        ViewHolder2 viewHolder2;
+        
+        if (data.get(position).getUserType() == UserType.Server) {
+            if (view == null) {
+            	viewHolder1 = new ViewHolder1();
+            	LayoutInflater inflater = (LayoutInflater) context
+            			.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         		view = inflater.inflate(R.layout.chat_user1_item, null);
-        		viewHolder.view = view;
-        		viewHolder.authorView = (TextView) view.findViewById(R.id.author);
-        		viewHolder.textView = (TextView) view.findViewById(R.id.text);
-        		viewHolder.timeView = (TextView) view.findViewById(R.id.time);
-        		view.setTag(viewHolder);
-        		break;
-        	case Me:
-        	case Service:
+        		viewHolder1.authorView = (TextView) view.findViewById(R.id.author);
+        		viewHolder1.textView = (TextView) view.findViewById(R.id.text);
+        		viewHolder1.timeView = (TextView) view.findViewById(R.id.time);
+            	view.setTag(viewHolder1);
+            	
+            } else {
+            	viewHolder1 = (ViewHolder1) view.getTag();
+            }
+            
+            viewHolder1.authorView.setText(data.get(position).getUserType().name());
+            viewHolder1.textView.setText(data.get(position).getMessageText());
+            viewHolder1.timeView.setText(data.get(position).getMessageTime());
+        } else {
+            if (view == null) {
+            	viewHolder2 = new ViewHolder2();
+            	LayoutInflater inflater = (LayoutInflater) context
+            			.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         		view = inflater.inflate(R.layout.chat_user2_item, null);
-        		viewHolder.view = view;
-        		viewHolder.textView = (TextView) view.findViewById(R.id.service_message1);
-        		viewHolder.timeView = (TextView) view.findViewById(R.id.service_date1);
-        		break;
-        	}
-        	view.setTag(viewHolder);
-        	
-        } else
-        	viewHolder = (ViewHolder) view.getTag();
-        
-        view = viewHolder.view;
-        
-    	if (viewHolder.authorView != null) {
-    		viewHolder.authorView.setText(data.get(position).getUserType().name());
-    		viewHolder.textView.setText(data.get(position).getMessageText());
-    		viewHolder.timeView.setText(data.get(position).getMessageTime());
-    	} else {
-    		viewHolder.textView.setText(data.get(position).getMessageText());
-    		viewHolder.timeView.setText(data.get(position).getMessageTime());
-    	}
+        		viewHolder2.authorView = (TextView) view.findViewById(R.id.author);
+        		viewHolder2.textView = (TextView) view.findViewById(R.id.text);
+        		viewHolder2.timeView = (TextView) view.findViewById(R.id.time);
+            	view.setTag(viewHolder2);
+            	
+            } else {
+            	viewHolder2 = (ViewHolder2) view.getTag();
+            }
+            
+            viewHolder2.authorView.setText(data.get(position).getUserType().name());
+            viewHolder2.textView.setText(data.get(position).getMessageText());
+    		viewHolder2.timeView.setText(data.get(position).getMessageTime());
+        }
         
         return view;
+    }
+    
+    @Override
+    public int getViewTypeCount() {
+    	return 2;
+    }
+    
+    @Override
+    public int getItemViewType(int position) {
+        ChatMessage message = data.get(position);
+        return (message.getUserType().ordinal() >= 1) ? 1 : 0;
     }
 }

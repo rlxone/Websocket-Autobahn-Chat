@@ -1,5 +1,6 @@
 package com.example.websocket;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +50,8 @@ public class MainActivity extends Activity {
 		buttonOne.setOnClickListener(new Button.OnClickListener() {
 		    public void onClick(View v) {
 		    	String message = ((EditText) findViewById(R.id.sendEditText)).getText().toString();
-		    	exampleSocketConnection.sendMessage(message);
+		    	//exampleSocketConnection.sendMessage(message);
+		    	exampleSocketConnection.sendPing();
 		    }
 		});
 	}
@@ -78,7 +80,7 @@ public class MainActivity extends Activity {
         exampleSocketConnection.closeConnection();
     }
 
-    public void openSocketConnection() {
+    public void openSocketConnection() throws WebSocketException, IOException {
         exampleSocketConnection.openConnection();
     }
 
@@ -86,7 +88,7 @@ public class MainActivity extends Activity {
         return exampleSocketConnection.isConnected();
     }
 
-    public void reconnect() {
+    public void reconnect() throws WebSocketException, IOException {
         exampleSocketConnection.openConnection();
     }
     
@@ -107,8 +109,13 @@ public class MainActivity extends Activity {
 			closeSocketConnection();
 		}
 		if (id == R.id.action_connect) {
-			if (!isSocketConnected()) {
-				openSocketConnection();
+			if (!exampleSocketConnection.isConnected()) {
+				try {
+					openSocketConnection();
+				} catch (WebSocketException | IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		return super.onOptionsItemSelected(item);
@@ -116,7 +123,12 @@ public class MainActivity extends Activity {
 	
 	private BackgroundManager.Listener appActivityListener = new BackgroundManager.Listener() {
         public void onBecameForeground() {
-            openSocketConnection();
+            try {
+				openSocketConnection();
+			} catch (WebSocketException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             Log.i("Websocket", "Became Foreground");
         }
 
@@ -162,14 +174,26 @@ public class MainActivity extends Activity {
     	getActionBar().setIcon(R.drawable.ic_smiles_smile);
     }
     
+    public void onDisconnectedByServer(WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame,
+            boolean closedByServer) {
+		chatMessagesList.add(giveMeChatMessage("Disconnect by server", UserType.Service));
+		chatListView.invalidateViews();
+		getActionBar().setIcon(R.drawable.ic_smiles_smile);
+	}
+    
     public void onUnexpectedError(WebSocketException cause) {
     	chatMessagesList.add(giveMeChatMessage("Unexpected Error", UserType.Service));
-    	chatListView.invalidateViews();;
+    	chatListView.invalidateViews();
     }
 
     public void onPongFrame(WebSocketFrame frame) throws Exception {
     	chatMessagesList.add(giveMeChatMessage("Pong", UserType.Service));
-    	//chatListView.invalidateViews();
+    	chatListView.invalidateViews();
+    }
+    
+    public void onPingFrame(WebSocketFrame frame) throws Exception {
+    	chatMessagesList.add(giveMeChatMessage("Ping", UserType.Service));
+    	chatListView.invalidateViews();
     }
     
     @Subscribe(threadMode = ThreadMode.MAIN)  
@@ -191,11 +215,16 @@ public class MainActivity extends Activity {
     	case Pong:
     		onPongFrame((WebSocketFrame) event.objects.get(0));
     		break;
+    	case Ping:
+    		onPingFrame((WebSocketFrame) event.objects.get(0));
     	case Send:
     		onSendMessage((String) event.objects.get(0));
     		break;
     	case TextMessage:
     		onTextMessage((String) event.objects.get(0));
+    		break;
+    	case DisconnectedByServer:
+    		onDisconnectedByServer((WebSocketFrame)event.objects.get(0), (WebSocketFrame)event.objects.get(1), (boolean)event.objects.get(2));
     		break;
 		default:
 			break;

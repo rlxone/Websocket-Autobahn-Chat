@@ -11,7 +11,9 @@ import com.example.websocket.BuildConfig;
 import com.google.gson.Gson;
 import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFrame;
+import com.neovisionaries.ws.client.WebSocketState;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,54 +23,26 @@ import org.greenrobot.eventbus.EventBus;
 public class ExampleSocketConnection implements ClientWebSocket.MessageNotifier {
     private ClientWebSocket clientWebSocket;
     private Context context;
-    public Gson gson = new Gson();
-    private Handler socketConnectionHandler;
-
-    private Runnable checkConnectionRunnable = new Runnable() {
-		public void run() {
-			try {
-			    if (!clientWebSocket.getConnection().isOpen()) {
-			        openConnection();
-			    }
-			    startCheckConnection();
-			}
-			catch (Exception e) {
-				Log.i("Websocket", "Check runnable exception: " + e.getMessage());
-			}
-		}
-	};
-
-    private void startCheckConnection() {
-        socketConnectionHandler.postDelayed(checkConnectionRunnable, 5000);
-    }
-
-    private void stopCheckConnection() {
-        socketConnectionHandler.removeCallbacks(checkConnectionRunnable);
-    }
 
     public ExampleSocketConnection(Context context) {
         this.context = context;
-        socketConnectionHandler = new Handler();
     }
 
-    public void openConnection() {
-        /*if (!Preferences.getManager().isAuth()) {
-            Log.i("Websocket", "Error: User is not authorize");
-            return;
-        }*/
-        if (clientWebSocket != null) {
-        	clientWebSocket.close();
-        	stopCheckConnection();
-        }
-        try {
+    public void openConnection() throws WebSocketException, IOException {
+    	if (clientWebSocket != null && clientWebSocket.getConnection().isOpen()) {
+    		clientWebSocket.close();
+    	}
+    	if (clientWebSocket != null && clientWebSocket.getConnection().getState() == WebSocketState.CONNECTING) {
+    		return;
+    	}
+    	try {
             clientWebSocket = new ClientWebSocket(this, BuildConfig.SOCKET_URL /*+ Preferences.getManager().getUserId()*/);
             clientWebSocket.connect();
             Log.i("Websocket", "Trying connect to websocket " + BuildConfig.SOCKET_URL /*+ Preferences.getManager().getUserId()*/);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        initScreenStateListener();
-        startCheckConnection();
+    	initScreenStateListener();
     }
     
     public void sendMessage(String message) {
@@ -77,13 +51,17 @@ public class ExampleSocketConnection implements ClientWebSocket.MessageNotifier 
     	}
     }
     
+    public void sendPing() {
+    	if (clientWebSocket != null) {
+    		clientWebSocket.getConnection().sendPing();
+    	}
+    }
+    
     public void closeConnection() {
         if (clientWebSocket != null) {
             clientWebSocket.close();
-            clientWebSocket = null;
         }
         releaseScreenStateListener();
-        stopCheckConnection();
     }
 
     /**
@@ -107,7 +85,12 @@ public class ExampleSocketConnection implements ClientWebSocket.MessageNotifier 
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(Intent.ACTION_SCREEN_ON)) {
                 Log.i("Websocket", "Screen ON");
-                openConnection();
+                try {
+					openConnection();
+				} catch (WebSocketException | IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
             } else if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
                 Log.i("Websocket", "Screen OFF");
                 closeConnection();
@@ -120,7 +103,7 @@ public class ExampleSocketConnection implements ClientWebSocket.MessageNotifier 
                 clientWebSocket.getConnection() != null &&
                 clientWebSocket.getConnection().isOpen();
     }
-
+    
 	public void onTextMessage(String message) {
     	RealTimeMessage realTimeMessage = new RealTimeMessage();
     	realTimeMessage.type = RealTimeMessage.Type.TextMessage;
@@ -189,6 +172,29 @@ public class ExampleSocketConnection implements ClientWebSocket.MessageNotifier 
     	realTimeMessage.type = RealTimeMessage.Type.Send;
     	ArrayList<Object> objects = new ArrayList<Object>();
     	objects.add(message);
+    	realTimeMessage.objects = objects;
+        EventBus.getDefault().post(realTimeMessage);
+	}
+	
+	@Override
+	public void onPingFrame(WebSocketFrame frame) {
+		RealTimeMessage realTimeMessage = new RealTimeMessage();
+    	realTimeMessage.type = RealTimeMessage.Type.Ping;
+    	ArrayList<Object> objects = new ArrayList<Object>();
+    	objects.add(frame);
+    	realTimeMessage.objects = objects;
+        EventBus.getDefault().post(realTimeMessage);
+	}
+	
+	@Override
+	public void onDisconnectedByServer(WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame,
+			boolean closedByServer) {
+    	RealTimeMessage realTimeMessage = new RealTimeMessage();
+    	realTimeMessage.type = RealTimeMessage.Type.DisconnectedByServer;
+    	ArrayList<Object> objects = new ArrayList<Object>();
+    	objects.add(serverCloseFrame);
+    	objects.add(clientCloseFrame);
+    	objects.add(closedByServer);
     	realTimeMessage.objects = objects;
         EventBus.getDefault().post(realTimeMessage);
 	}

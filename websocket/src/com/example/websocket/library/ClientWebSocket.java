@@ -2,9 +2,13 @@ package com.example.websocket.library;
 
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketAdapter;
+import com.neovisionaries.ws.client.WebSocketError;
 import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
+import com.neovisionaries.ws.client.WebSocketState;
+
+import android.util.Log;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -23,39 +27,30 @@ public class ClientWebSocket {
         this.host = host;
     }
 
-    public void connect() {
-        new Thread(new Runnable() {
+    public void connect() throws IOException, WebSocketException {
+    	new Thread(new Runnable() {
 			public void run() {
-			    if (ws != null) {
-			        reconnect();
-			    } else {
-			        try {
-			            WebSocketFactory factory = new WebSocketFactory();
-			            SSLContext context = NaiveSSLContext.getInstance("TLS");
-			            factory.setSSLContext(context);
-			            ws = factory.createSocket(host);
-			            ws.addListener(new SocketListener());
-			            ws.connect();
-			        } catch (WebSocketException e) {
-			            e.printStackTrace();
-			        } catch (IOException e) {
-			            e.printStackTrace();
-			        } catch (NoSuchAlgorithmException e) {
-			            e.printStackTrace();
-			        }
-			    }
+				try {
+		            WebSocketFactory factory = new WebSocketFactory().setConnectionTimeout(3000);
+		            SSLContext context = NaiveSSLContext.getInstance("TLS");
+		            factory.setSSLContext(context);
+		            ws = factory.createSocket(host);
+		            ws.getSocket().setKeepAlive(true);
+		            ws.addListener(new SocketListener());
+		            ws.connect();
+		        } catch (IOException e) {
+		            e.printStackTrace();
+		        } catch (NoSuchAlgorithmException e) {
+		            e.printStackTrace();
+		        } catch (WebSocketException e) {
+					try {
+						connect();
+					} catch (IOException | WebSocketException e1) {
+						e1.printStackTrace();
+					}
+				}
 			}
 		}).start();
-    }
-
-    private void reconnect() {
-        try {
-            ws = ws.recreate().connect();
-        } catch (WebSocketException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public WebSocket getConnection() {
@@ -74,6 +69,18 @@ public class ClientWebSocket {
     }
     
     public class SocketListener extends WebSocketAdapter {
+    	
+    	@Override
+    	public void onConnectError(WebSocket websocket, WebSocketException exception) throws Exception {
+    		super.onConnectError(websocket, exception);
+    		//reconnect();
+    	}
+    	
+    	@Override
+    	public void onCloseFrame(WebSocket websocket, WebSocketFrame frame) throws Exception {
+    		//super.onCloseFrame(websocket, frame);
+    	}
+    	
         @Override
         public void onConnected(WebSocket websocket, Map<String, List<String>> headers) throws Exception {
             super.onConnected(websocket, headers);
@@ -85,33 +92,43 @@ public class ClientWebSocket {
         }
 
         @Override
-        public void onError(WebSocket websocket, WebSocketException cause) {
+        public void onError(WebSocket websocket, WebSocketException cause) throws WebSocketException, IOException {
         	listener.onError(cause);
-            reconnect();
-        }
-
-        @Override
-        public void onDisconnected(WebSocket websocket,
-                                   WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame,
-                                   boolean closedByServer) {
-        	listener.onDisconnected(serverCloseFrame, clientCloseFrame, closedByServer);
-            if (closedByServer) {
-            	websocket.disconnect();
-                reconnect();
-            }
+        	//connect();
         }
         
         @Override
-        public void onUnexpectedError(WebSocket websocket, WebSocketException cause) {
+        public void onDisconnected(WebSocket websocket,
+                                   WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame,
+                                   boolean closedByServer) throws WebSocketException, IOException {
+        	if (clientCloseFrame.getCloseCode() != 1000) {
+        		connect();
+        		listener.onDisconnected(serverCloseFrame, clientCloseFrame, closedByServer);
+        	} else {
+        		if (closedByServer) {
+        			listener.onDisconnectedByServer(serverCloseFrame, clientCloseFrame, closedByServer);
+        		} else {
+        			listener.onDisconnected(serverCloseFrame, clientCloseFrame, closedByServer);
+        		}
+        	}
+        }
+        
+        @Override
+        public void onUnexpectedError(WebSocket websocket, WebSocketException cause) throws WebSocketException, IOException {
         	listener.onUnexpectedError(cause);
-            reconnect();
+            //reconnect();
         }
 
         @Override
         public void onPongFrame(WebSocket websocket, WebSocketFrame frame) throws Exception {
             super.onPongFrame(websocket, frame);
             listener.onPongFrame(frame);
-            websocket.sendPing("Are you there?");
+        }
+        
+        @Override
+        public void onPingFrame(WebSocket websocket, WebSocketFrame frame) throws Exception {
+        	super.onPingFrame(websocket, frame);
+        	listener.onPingFrame(frame);
         }
     }
     
@@ -122,8 +139,12 @@ public class ClientWebSocket {
         void onDisconnected(WebSocketFrame serverCloseFrame,
         		WebSocketFrame clientCloseFrame,
         		boolean closedByServer);
+        void onDisconnectedByServer(WebSocketFrame serverCloseFrame,
+        		WebSocketFrame clientCloseFrame,
+        		boolean closedByServer);
         void onUnexpectedError(WebSocketException cause);
         void onPongFrame(WebSocketFrame frame);
+        void onPingFrame(WebSocketFrame frame);
         void onMessageSend(String message);
     }
 }

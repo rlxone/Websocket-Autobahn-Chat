@@ -9,7 +9,9 @@ public class RealTimeMessage {
 		Error,
 		UnexpectedError,
 		Pong,
+		Ping,
 		Disconnected,
+		DisconnectedByServer,
 		Send
 	}
 	
