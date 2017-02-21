@@ -47,11 +47,6 @@
 			<location>C:/Users/refle/Desktop/gson-master/gson-master/gson/src/main/java</location>
 		</link>
 		<link>
-			<name>nv-websocket</name>
-			<type>2</type>
-			<location>C:/Users/refle/Desktop/nv-websocket-client-master/nv-websocket-client-master/src/main/java</location>
-		</link>
-		<link>
 			<name>ws_service</name>
 			<type>2</type>
 			<location>C:/Users/refle/Desktop/WebSocket-WAMP-Service-android/ws_service</location>

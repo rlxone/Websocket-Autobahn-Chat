@@ -3,7 +3,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry kind="src" path="gson"/>
-	<classpathentry kind="src" path="nv-websocket"/>
 	<classpathentry kind="src" path="eventbus"/>
 	<classpathentry kind="src" path="autobahn"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.andmore.ANDROID_FRAMEWORK"/>
