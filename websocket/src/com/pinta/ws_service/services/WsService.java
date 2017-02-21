@@ -2,25 +2,30 @@ package com.pinta.ws_service.services;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.widget.Toast;
 import de.tavendo.autobahn.Wamp;
 import de.tavendo.autobahn.WampConnection;
 
+import org.greenrobot.eventbus.EventBus;
+
+import com.example.websocket.model.BroadcastMessage;
 import com.pinta.ws_service.Consts;
 import com.pinta.ws_service.L;
 import com.pinta.ws_service.WsManager;
-import com.pinta.ws_service.receivers.HeartBeatTaskReceiver;
+import com.pinta.ws_service.Consts.WsConstant;
 
 public class WsService extends Service {
 
-    private HeartBeatTaskReceiver mHeartBeatTaskReceiver = new HeartBeatTaskReceiver();
     private String mWsUri;
     private WampConnection mConnection = new WampConnection();
     private static WsService instance = null;
     private static boolean isClosedByUser = false;
     private static boolean isOpen = false;
+    private Handler handler = new Handler();
     //private static boolean isFirstConnection = false;
     
     public static boolean isCreated() {
@@ -57,7 +62,7 @@ public class WsService extends Service {
         }
         return START_NOT_STICKY;
     }
-
+    
     private void wsConnect() {
     	isClosedByUser = false;
     	if (!mConnection.isConnected()) {
@@ -66,7 +71,7 @@ public class WsService extends Service {
                 public void onOpen() {
                     log("open");
                     sendOnOpen();
-                    mHeartBeatTaskReceiver.stopHeartBeatTask(WsService.this);
+                    stopHeartBeatTask();
                 }
                 
                 @Override
@@ -74,14 +79,14 @@ public class WsService extends Service {
                 	if (mConnection != null) {
                 		log(i + " == " + s);
                         if (!isOpen && i == 2 && WsManager.mHeartBeatPeriodInMillis != 0) {
-                        	mHeartBeatTaskReceiver.restartHeartBeatTask(WsService.this);
+                        	restartHeartBeatTask();
                         	isOpen = true;
                         	return;
                         }
                         if (i != 2 && WsManager.mHeartBeatPeriodInMillis != 0) {
                         	sendOnClose(s);
                         	isOpen = false;
-                        	mHeartBeatTaskReceiver.restartHeartBeatTask(WsService.this);
+                        	restartHeartBeatTask();
                         }	
                 	}
                 }
@@ -100,7 +105,7 @@ public class WsService extends Service {
         if (mConnection.isConnected()) {
             mConnection.disconnect();
         }
-        mHeartBeatTaskReceiver.stopHeartBeatTask(WsService.this);
+        stopHeartBeatTask();
         isClosedByUser = true;
         mConnection = null;
         stopSelf();
@@ -150,39 +155,64 @@ public class WsService extends Service {
 
     private void sendOnOpen() {
     	isOpen = true;
-        sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
+    	BroadcastMessage message = new BroadcastMessage();
+    	message.id = WsConstant.WS_CONNECT_OPEN;
+    	message.message = null;
+    	EventBus.getDefault().post(message);
+        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
                 .putExtra(Consts.WsConstant.WS_CONNECT_OPEN, "")
-        );
+        );*/
     }
 
     private void sendOnClose(String s) {
-        sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
+    	BroadcastMessage message = new BroadcastMessage();
+    	message.id = WsConstant.WS_CONNECT_CLOSE;
+    	message.message = s;
+    	EventBus.getDefault().post(message);
+        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
                 .putExtra(Consts.WsConstant.WS_CONNECT_CLOSE, s)
-        );
+        );*/
     }
     
     private void sendOnSubscribeEvent(String s) {
-        sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
+    	BroadcastMessage message = new BroadcastMessage();
+    	message.id = WsConstant.WS_SUBSCRIBE;
+    	message.message = s;
+    	//Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
+    	EventBus.getDefault().post(message);
+        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
                 .putExtra(Consts.WsConstant.WS_SUBSCRIBE, s)
-        );
+        );*/
     }
 
     private void sendOnUnsubscribeEvent(String s) {
-        sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
+    	BroadcastMessage message = new BroadcastMessage();
+    	message.id = WsConstant.WS_UNSUBSCRIBE;
+    	message.message = s;
+    	EventBus.getDefault().post(message);
+        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
                 .putExtra(Consts.WsConstant.WS_UNSUBSCRIBE, s)
-        );
+        );*/
     }
     
     private void sendOnCallResult(String s) {
-        sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
+    	BroadcastMessage message = new BroadcastMessage();
+    	message.id = WsConstant.WS_CALL;
+    	message.message = s;
+    	EventBus.getDefault().post(message);
+        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
                 .putExtra(Consts.WsConstant.WS_CALL, s)
-        );
+        );*/
     }
 
     private void sendOnCallError(String s) {
-        sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
+    	BroadcastMessage message = new BroadcastMessage();
+    	message.id = WsConstant.WS_CALL;
+    	message.message = s;
+    	EventBus.getDefault().post(message);
+        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
                 .putExtra(Consts.WsConstant.WS_CALL, s)
-        );
+        );*/
     }
     
     @Nullable
@@ -208,5 +238,26 @@ public class WsService extends Service {
     	super.onDestroy();
     	instance = null;
     	isOpen = false;
+    }
+    
+    Runnable runnable = new Runnable() {
+	    @Override
+	    public void run() {
+	    	doHeartBeatTask();
+	    	handler.postDelayed(this, 6000);
+	    }
+	};
+	
+    public void stopHeartBeatTask() {
+    	handler.removeCallbacks(runnable);
+    }
+    
+    public void restartHeartBeatTask() {
+    	handler.removeCallbacks(runnable);
+    	handler.post(runnable);
+    }
+    
+    private void doHeartBeatTask() {
+    	wsConnect();
     }
 }

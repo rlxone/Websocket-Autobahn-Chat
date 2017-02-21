@@ -8,6 +8,8 @@ import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
+import org.greenrobot.eventbus.EventBus;
+
 import com.pinta.ws_service.services.WsService;
 
 public class WsManager {
@@ -16,30 +18,6 @@ public class WsManager {
     public static long mHeartBeatPeriodInMillis;
     private static WsManager sInstance;
     private String mPort;
-    private WsCallbackListeners mWsCallbackListeners;
-    private Handler mainHandler;
-    
-    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent == null) return;
-            if (intent.hasExtra(Consts.WsConstant.WS_CONNECT_OPEN)) {
-            	mWsCallbackListeners.onWsOpenCallbackListener();
-            } else if (intent.hasExtra(Consts.WsConstant.WS_CONNECT_CLOSE)) {
-                final String onCloseMessage = intent.getStringExtra(Consts.WsConstant.WS_CONNECT_CLOSE);
-                mWsCallbackListeners.onWsCloseCallbackListener(onCloseMessage);
-            } else if (intent.hasExtra(Consts.WsConstant.WS_SUBSCRIBE)) {
-                final String onSubscribeMessage = intent.getStringExtra(Consts.WsConstant.WS_SUBSCRIBE);
-                mWsCallbackListeners.onWsSubscribeCallbackListener(onSubscribeMessage);
-            } else if (intent.hasExtra(Consts.WsConstant.WS_CALL)) {
-                final String onCallMessage = intent.getStringExtra(Consts.WsConstant.WS_CALL);
-                mWsCallbackListeners.onWsCallCallbackListener(onCallMessage);
-            } else if (intent.hasExtra(Consts.WsConstant.WS_UNSUBSCRIBE)) {
-                final String onUnsubscribeMessage = intent.getStringExtra(Consts.WsConstant.WS_UNSUBSCRIBE);
-                mWsCallbackListeners.onWsUnSubscribeCallbackListener(onUnsubscribeMessage);
-            }
-        }
-    };
 
     private WsManager() {
         sInstance = this;
@@ -55,7 +33,9 @@ public class WsManager {
     public void disconnect(Context context) {
         context.startService(new Intent(context, WsService.class)
                 .putExtra(Consts.WsConstant.WS_DISCONNECT, ""));
-        //unregisterCallback(context);
+        if (EventBus.getDefault().isRegistered(context)) {
+        	EventBus.getDefault().unregister(context);
+        }
     }
 
     public void subscribe(Context context, String topicName) {
@@ -93,17 +73,6 @@ public class WsManager {
     public WsManager setHeartBeat(long heartBeatPeriodInMillis) {
         WsManager.mHeartBeatPeriodInMillis = heartBeatPeriodInMillis;
         return this;
-    }
-
-    public void registerCallback(Context context, WsCallbackListeners wsCallbackListeners) {
-    	mainHandler = new Handler(context.getMainLooper());
-        mWsCallbackListeners = wsCallbackListeners;
-        context.registerReceiver(mBroadcastReceiver, new IntentFilter(Consts.BroadcastConstant.BROADCAST_ACTION_WS));
-    }
-
-    public void unregisterCallback(Context context) {
-    	mainHandler = null;
-        context.unregisterReceiver(mBroadcastReceiver);
     }
 
     public void connect(Context context) {

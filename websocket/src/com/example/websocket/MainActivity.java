@@ -3,6 +3,8 @@ package com.example.websocket;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
+import android.provider.CalendarContract.EventsEntity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -12,18 +14,27 @@ import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
 import com.example.websocket.adapters.ChatListAdapter;
+import com.example.websocket.model.BroadcastMessage;
 import com.example.websocket.model.ChatMessage;
 import com.example.websocket.model.UserType;
 import com.pinta.ws_service.WsManager;
+import com.pinta.ws_service.Consts.BroadcastConstant;
+import com.pinta.ws_service.Consts.WsConstant;
 import com.pinta.ws_service.services.WsService;
 
 public class MainActivity extends Activity implements View.OnClickListener, WsManager.WsCallbackListeners {
 	
 	private ListView chatListView;
 	private ChatListAdapter chatListAdapter;
-	private ArrayList<ChatMessage> chatMessagesList = new ArrayList<>();
+	private static ArrayList<ChatMessage> chatMessagesList = new ArrayList<>();
 	private String userSubscribeChannel = "sgc:user1";
+	private static int iconId = R.drawable.ic_smiles_smile;
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,15 +48,24 @@ public class MainActivity extends Activity implements View.OnClickListener, WsMa
 		chatListView = (ListView) findViewById(R.id.chatListView);
 		chatListAdapter = new ChatListAdapter(this, chatMessagesList);
 		chatListView.setAdapter(chatListAdapter);
-        getActionBar().setIcon(R.drawable.ic_smiles_smile);
+		chatListView.invalidateViews();
+		setConnectionIcon(iconId);
+    }
+    
+    private void setConnectionIcon(int resourceId) {
+    	iconId = resourceId;
+    	getActionBar().setIcon(iconId);
     }
     
     private void initConnection() {
-        WsManager.getWsManager().registerCallback(this, this);
+    	if (!EventBus.getDefault().isRegistered(this)) {
+    		EventBus.getDefault().register(this);
+    	}
+    	
         WsManager.getWsManager()
 	        .setPort(BuildConfig.WEBSOCKET_URL)
 	        .setLog(true)
-	        .setHeartBeat(10000L)
+	        .setHeartBeat(6000L)
 	        .connect(this);
     }
     
@@ -58,21 +78,8 @@ public class MainActivity extends Activity implements View.OnClickListener, WsMa
 
     @Override
     protected void onDestroy() {
+        WsManager.getWsManager().disconnect(this);
         super.onDestroy();
-        stopService(new Intent(this, WsService.class));
-        //WsManager.getWsManager().disconnect(this);
-    }
-    
-    @Override
-    protected void onStart() {
-    	// TODO Auto-generated method stub
-    	super.onStart();
-    }
-    
-    @Override
-    protected void onPause() {
-    	super.onPause();
-    	//WsManager.getWsManager().unregisterCallback(this);
     }
     
     @Override
@@ -109,8 +116,10 @@ public class MainActivity extends Activity implements View.OnClickListener, WsMa
 	public boolean onOptionsItemSelected(MenuItem item) {
 		int id = item.getItemId();
 		if (id == R.id.action_disconnect) {
+			if (WsService.isCreated()) {
+				onWsCloseCallbackListener("forced disconnect from server");
+			}
 			WsManager.getWsManager().disconnect(this);
-			onWsCloseCallbackListener("forced disconnect from server");
 		}
 		if (id == R.id.action_connect) {
 			initConnection();
@@ -132,7 +141,7 @@ public class MainActivity extends Activity implements View.OnClickListener, WsMa
         Toast.makeText(this, "ws connected successfully", Toast.LENGTH_SHORT).show();
     	chatMessagesList.add(giveMeChatMessage("Connected", UserType.Service));
 		chatListView.invalidateViews();
-		getActionBar().setIcon(R.drawable.ic_smiles_smile_active);
+		setConnectionIcon(R.drawable.ic_smiles_smile_active);
     }
 
     @Override
@@ -140,7 +149,7 @@ public class MainActivity extends Activity implements View.OnClickListener, WsMa
         Toast.makeText(this, "ws was closed with error: " + onCloseMessage, Toast.LENGTH_SHORT).show();
     	chatMessagesList.add(giveMeChatMessage("Disconnected", UserType.Service));
     	chatListView.invalidateViews();
-        getActionBar().setIcon(R.drawable.ic_smiles_smile);
+    	setConnectionIcon(R.drawable.ic_smiles_smile);
     }
 
     @Override
@@ -163,4 +172,19 @@ public class MainActivity extends Activity implements View.OnClickListener, WsMa
 		chatMessagesList.add(giveMeChatMessage(onUnSubscribeMessage, UserType.Service));
 		chatListView.invalidateViews();
 	}
+	
+	@Subscribe(threadMode = ThreadMode.MAIN)  
+	public void onMessageEvent(BroadcastMessage event) {
+		if (event.id == WsConstant.WS_SUBSCRIBE) {
+			onWsSubscribeCallbackListener(event.message);
+		} else if (event.id == WsConstant.WS_CALL) {
+			onWsCallCallbackListener(event.message);
+		} else if (event.id == WsConstant.WS_CONNECT_CLOSE) {
+			onWsCloseCallbackListener(event.message);
+		} else if (event.id == WsConstant.WS_CONNECT_OPEN) {
+			onWsOpenCallbackListener();
+		} else if (event.id == WsConstant.WS_UNSUBSCRIBE) {
+			onWsUnSubscribeCallbackListener(event.message);
+		}
+	};
 }

@@ -1,6 +1,9 @@
 package com.example.websocket.model;
 
-public class ChatMessage {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class ChatMessage implements Parcelable {
     private String messageText;
     private UserType userType;
     private String messageDateTime;
@@ -28,4 +31,16 @@ public class ChatMessage {
     public UserType getUserType() {
         return userType;
     }
+
+	@Override
+	public int describeContents() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) {
+		// TODO Auto-generated method stub
+		
+	}
 }
