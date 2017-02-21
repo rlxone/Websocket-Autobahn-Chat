@@ -32,6 +32,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>autobahn</name>
+			<type>2</type>
+			<location>C:/Users/refle/Desktop/autobahn-android-0.5.2/autobahn-android-0.5.2/Autobahn</location>
+		</link>
+		<link>
 			<name>eventbus</name>
 			<type>2</type>
 			<location>C:/Users/refle/Desktop/EventBus-master/EventBus-master/EventBus/src</location>
@@ -45,6 +50,16 @@
 			<name>nv-websocket</name>
 			<type>2</type>
 			<location>C:/Users/refle/Desktop/nv-websocket-client-master/nv-websocket-client-master/src/main/java</location>
+		</link>
+		<link>
+			<name>ws_service</name>
+			<type>2</type>
+			<location>C:/Users/refle/Desktop/WebSocket-WAMP-Service-android/ws_service</location>
+		</link>
+		<link>
+			<name>src/.gitignore</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Desktop/WebSocket-WAMP-Service-android-master/WebSocket-WAMP-Service-android-master/ws_service/.gitignore</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

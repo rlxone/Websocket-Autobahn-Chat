@@ -1,142 +1,122 @@
 package com.example.websocket;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
-
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import com.example.websocket.adapters.ChatListAdapter;
-import com.example.websocket.library.BackgroundManager;
-import com.example.websocket.library.ExampleSocketConnection;
-import com.example.websocket.library.RealTimeMessage;
 import com.example.websocket.model.ChatMessage;
 import com.example.websocket.model.UserType;
-import com.neovisionaries.ws.client.WebSocketException;
-import com.neovisionaries.ws.client.WebSocketFrame;
+import com.pinta.ws_service.WsManager;
+import com.pinta.ws_service.services.WsService;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements View.OnClickListener, WsManager.WsCallbackListeners {
 	
-	private ExampleSocketConnection exampleSocketConnection;
 	private ListView chatListView;
 	private ChatListAdapter chatListAdapter;
-	private List<ChatMessage> chatMessagesList = new ArrayList<>();
+	private ArrayList<ChatMessage> chatMessagesList = new ArrayList<>();
+	private String userSubscribeChannel = "sgc:user1";
 	
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-        exampleSocketConnection = new ExampleSocketConnection(this);
-        BackgroundManager.get(this.getApplication()).registerListener(appActivityListener);
-		setupUI();
-        setButtonsListeners();
-	}
-	
-	public void setButtonsListeners() {
-		Button buttonOne = (Button) findViewById(R.id.sendButton);
-		buttonOne.setOnClickListener(new Button.OnClickListener() {
-		    public void onClick(View v) {
-		    	String message = ((EditText) findViewById(R.id.sendEditText)).getText().toString();
-		    	//exampleSocketConnection.sendMessage(message);
-		    	exampleSocketConnection.sendPing();
-		    }
-		});
-	}
-	
-	public void setupUI() {
-		setContentView(R.layout.activity_main);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setupUI();
+        initListeners();
+    }
+    
+    private void setupUI() {
+        setContentView(R.layout.activity_main);
 		chatListView = (ListView) findViewById(R.id.chatListView);
 		chatListAdapter = new ChatListAdapter(this, chatMessagesList);
 		chatListView.setAdapter(chatListAdapter);
         getActionBar().setIcon(R.drawable.ic_smiles_smile);
-	}
-	
-	@Override
-	public void onStart() {
-	    super.onStart();
-	    EventBus.getDefault().register(this);
-	}
-
-	@Override
-	public void onStop() {
-	    super.onStop();
-	    EventBus.getDefault().unregister(this);
-	}
-	
-    public void closeSocketConnection() {
-        exampleSocketConnection.closeConnection();
+    }
+    
+    private void initConnection() {
+        WsManager.getWsManager().registerCallback(this, this);
+        WsManager.getWsManager()
+	        .setPort(BuildConfig.WEBSOCKET_URL)
+	        .setLog(true)
+	        .setHeartBeat(10000L)
+	        .connect(this);
+    }
+    
+    private void initListeners() {
+        findViewById(R.id.b_subscribe).setOnClickListener(this);
+        findViewById(R.id.b_call).setOnClickListener(this);
+        findViewById(R.id.b_publish).setOnClickListener(this);
+        findViewById(R.id.b_subscribe_off).setOnClickListener(this);
     }
 
-    public void openSocketConnection() throws WebSocketException, IOException {
-        exampleSocketConnection.openConnection();
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopService(new Intent(this, WsService.class));
+        //WsManager.getWsManager().disconnect(this);
     }
-
-    public boolean isSocketConnected() {
-        return exampleSocketConnection.isConnected();
+    
+    @Override
+    protected void onStart() {
+    	// TODO Auto-generated method stub
+    	super.onStart();
     }
-
-    public void reconnect() throws WebSocketException, IOException {
-        exampleSocketConnection.openConnection();
+    
+    @Override
+    protected void onPause() {
+    	super.onPause();
+    	//WsManager.getWsManager().unregisterCallback(this);
+    }
+    
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.b_subscribe:
+                WsManager.getWsManager().subscribe(this,
+                        ((EditText) findViewById(R.id.et_input_subscribe)).getText().toString());
+                break;
+            case R.id.b_call:
+                WsManager.getWsManager().call(this,
+                        ((EditText) findViewById(R.id.et_input_call)).getText().toString(),
+                        ((EditText) findViewById(R.id.et_input_call_param)).getText().toString());
+                break;
+            case R.id.b_publish:
+                WsManager.getWsManager().publish(this,
+                        ((EditText) findViewById(R.id.et_input_publish_topic)).getText().toString(),
+                        ((EditText) findViewById(R.id.et_input_publish_message)).getText().toString());
+                break;
+            case R.id.b_subscribe_off:
+            	WsManager.getWsManager().unsubscribe(this,
+            			((EditText) findViewById(R.id.et_input_subscribe)).getText().toString());
+            	break;
+        }
     }
     
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-
-	@Override
+    
+    @Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
 		if (id == R.id.action_disconnect) {
-			closeSocketConnection();
+			WsManager.getWsManager().disconnect(this);
+			onWsCloseCallbackListener("forced disconnect from server");
 		}
 		if (id == R.id.action_connect) {
-			if (!exampleSocketConnection.isConnected()) {
-				try {
-					openSocketConnection();
-				} catch (WebSocketException | IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
+			initConnection();
 		}
 		return super.onOptionsItemSelected(item);
 	}
-	
-	private BackgroundManager.Listener appActivityListener = new BackgroundManager.Listener() {
-        public void onBecameForeground() {
-            try {
-				openSocketConnection();
-			} catch (WebSocketException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            Log.i("Websocket", "Became Foreground");
-        }
-
-        public void onBecameBackground() {
-            closeSocketConnection();
-            Log.i("Websocket", "Became Background");
-        }
-    };
     
     public ChatMessage giveMeChatMessage(String message, UserType userType) {
     	ChatMessage chatMessage = new ChatMessage();
@@ -146,88 +126,41 @@ public class MainActivity extends Activity {
     	return chatMessage;
     }
     
-    public void onTextMessage(String message) {
-    	chatMessagesList.add(giveMeChatMessage(message, UserType.Server));
-    	chatListView.invalidateViews();
-    }
-    
-    public void onSendMessage(String message) {
-    	chatMessagesList.add(giveMeChatMessage(message, UserType.Me));
-    	chatListView.invalidateViews();
-    }
-
-    public void onConnected(Map<String, List<String>> headers) throws Exception {
+    @Override
+    public void onWsOpenCallbackListener() {
+    	WsManager.getWsManager().subscribe(this, userSubscribeChannel);
+        Toast.makeText(this, "ws connected successfully", Toast.LENGTH_SHORT).show();
     	chatMessagesList.add(giveMeChatMessage("Connected", UserType.Service));
-    	chatListView.invalidateViews();
-    	getActionBar().setIcon(R.drawable.ic_smiles_smile_active);
-    }
-
-    public void onError(WebSocketException cause) {
-    	chatMessagesList.add(giveMeChatMessage("Error", UserType.Service));
-    	chatListView.invalidateViews();
-    }
-
-    public void onDisconnected(WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame,
-                               boolean closedByServer) {
-    	chatMessagesList.add(giveMeChatMessage("Disconnect", UserType.Service));
-    	chatListView.invalidateViews();
-    	getActionBar().setIcon(R.drawable.ic_smiles_smile);
-    }
-    
-    public void onDisconnectedByServer(WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame,
-            boolean closedByServer) {
-		chatMessagesList.add(giveMeChatMessage("Disconnect by server", UserType.Service));
 		chatListView.invalidateViews();
-		getActionBar().setIcon(R.drawable.ic_smiles_smile);
-	}
-    
-    public void onUnexpectedError(WebSocketException cause) {
-    	chatMessagesList.add(giveMeChatMessage("Unexpected Error", UserType.Service));
+		getActionBar().setIcon(R.drawable.ic_smiles_smile_active);
+    }
+
+    @Override
+    public void onWsCloseCallbackListener(String onCloseMessage) {
+        Toast.makeText(this, "ws was closed with error: " + onCloseMessage, Toast.LENGTH_SHORT).show();
+    	chatMessagesList.add(giveMeChatMessage("Disconnected", UserType.Service));
+    	chatListView.invalidateViews();
+        getActionBar().setIcon(R.drawable.ic_smiles_smile);
+    }
+
+    @Override
+    public void onWsSubscribeCallbackListener(String onSubscribeMessage) {
+        Toast.makeText(this, "ws subscribe response: " + onSubscribeMessage, Toast.LENGTH_SHORT).show();
+    	chatMessagesList.add(giveMeChatMessage(onSubscribeMessage, UserType.Server));
     	chatListView.invalidateViews();
     }
 
-    public void onPongFrame(WebSocketFrame frame) throws Exception {
-    	chatMessagesList.add(giveMeChatMessage("Pong", UserType.Service));
-    	chatListView.invalidateViews();
+    @Override
+    public void onWsCallCallbackListener(final String onCallMessage) {
+        Toast.makeText(this, "ws call response: " + onCallMessage, Toast.LENGTH_SHORT).show();
+		chatMessagesList.add(giveMeChatMessage(onCallMessage, UserType.Server));
+		chatListView.invalidateViews();
     }
-    
-    public void onPingFrame(WebSocketFrame frame) throws Exception {
-    	chatMessagesList.add(giveMeChatMessage("Ping", UserType.Service));
-    	chatListView.invalidateViews();
-    }
-    
-    @Subscribe(threadMode = ThreadMode.MAIN)  
-    public void onMessageEvent(RealTimeMessage event) throws Exception {
-    	Log.i("Websocket", event.type.name());
-    	switch (event.type) {
-    	case Connected:
-    		onConnected((Map<String, List<String>>) event.objects.get(0));
-    		break;
-    	case Disconnected:
-    		onDisconnected((WebSocketFrame) event.objects.get(0), (WebSocketFrame)event.objects.get(1), (boolean)event.objects.get(2));
-    		break;
-    	case Error:
-    		onError((WebSocketException)event.objects.get(0));
-    		break;
-    	case UnexpectedError:
-    		onUnexpectedError((WebSocketException)event.objects.get(0));
-    		break;
-    	case Pong:
-    		onPongFrame((WebSocketFrame) event.objects.get(0));
-    		break;
-    	case Ping:
-    		onPingFrame((WebSocketFrame) event.objects.get(0));
-    	case Send:
-    		onSendMessage((String) event.objects.get(0));
-    		break;
-    	case TextMessage:
-    		onTextMessage((String) event.objects.get(0));
-    		break;
-    	case DisconnectedByServer:
-    		onDisconnectedByServer((WebSocketFrame)event.objects.get(0), (WebSocketFrame)event.objects.get(1), (boolean)event.objects.get(2));
-    		break;
-		default:
-			break;
-    	}
-    };
+
+	@Override
+	public void onWsUnSubscribeCallbackListener(String onUnSubscribeMessage) {
+        Toast.makeText(this, "ws unsubscribe: " + onUnSubscribeMessage, Toast.LENGTH_SHORT).show();
+		chatMessagesList.add(giveMeChatMessage(onUnSubscribeMessage, UserType.Service));
+		chatListView.invalidateViews();
+	}
 }

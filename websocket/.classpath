@@ -5,8 +5,11 @@
 	<classpathentry kind="src" path="gson"/>
 	<classpathentry kind="src" path="nv-websocket"/>
 	<classpathentry kind="src" path="eventbus"/>
+	<classpathentry kind="src" path="autobahn"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.andmore.ANDROID_FRAMEWORK"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.andmore.LIBRARIES"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.andmore.DEPENDENCIES"/>
+	<classpathentry kind="lib" path="autobahn/libs/jackson-core-asl-1.9.7.jar"/>
+	<classpathentry kind="lib" path="autobahn/libs/jackson-mapper-asl-1.9.7.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
