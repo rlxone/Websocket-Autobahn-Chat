@@ -42,16 +42,6 @@
 			<location>C:/Users/refle/Desktop/EventBus-master/EventBus-master/EventBus/src</location>
 		</link>
 		<link>
-			<name>gson</name>
-			<type>2</type>
-			<location>C:/Users/refle/Desktop/gson-master/gson-master/gson/src/main/java</location>
-		</link>
-		<link>
-			<name>ws_service</name>
-			<type>2</type>
-			<location>C:/Users/refle/Desktop/WebSocket-WAMP-Service-android/ws_service</location>
-		</link>
-		<link>
 			<name>src/.gitignore</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Desktop/WebSocket-WAMP-Service-android-master/WebSocket-WAMP-Service-android-master/ws_service/.gitignore</locationURI>
