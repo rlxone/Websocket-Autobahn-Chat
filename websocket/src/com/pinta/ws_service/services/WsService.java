@@ -26,7 +26,6 @@ public class WsService extends Service {
     private static boolean isClosedByUser = false;
     private static boolean isOpen = false;
     private Handler handler = new Handler();
-    //private static boolean isFirstConnection = false;
     
     public static boolean isCreated() {
     	return instance != null;
@@ -142,7 +141,6 @@ public class WsService extends Service {
                             log(o);
                             sendOnCallResult(o.toString());
                         }
-
                         @Override
                         public void onError(String s, String s1) {
                             log(s + " == " + s1);
@@ -159,9 +157,6 @@ public class WsService extends Service {
     	message.id = WsConstant.WS_CONNECT_OPEN;
     	message.message = null;
     	EventBus.getDefault().post(message);
-        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
-                .putExtra(Consts.WsConstant.WS_CONNECT_OPEN, "")
-        );*/
     }
 
     private void sendOnClose(String s) {
@@ -169,9 +164,6 @@ public class WsService extends Service {
     	message.id = WsConstant.WS_CONNECT_CLOSE;
     	message.message = s;
     	EventBus.getDefault().post(message);
-        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
-                .putExtra(Consts.WsConstant.WS_CONNECT_CLOSE, s)
-        );*/
     }
     
     private void sendOnSubscribeEvent(String s) {
@@ -180,9 +172,6 @@ public class WsService extends Service {
     	message.message = s;
     	//Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
     	EventBus.getDefault().post(message);
-        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
-                .putExtra(Consts.WsConstant.WS_SUBSCRIBE, s)
-        );*/
     }
 
     private void sendOnUnsubscribeEvent(String s) {
@@ -190,9 +179,6 @@ public class WsService extends Service {
     	message.id = WsConstant.WS_UNSUBSCRIBE;
     	message.message = s;
     	EventBus.getDefault().post(message);
-        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
-                .putExtra(Consts.WsConstant.WS_UNSUBSCRIBE, s)
-        );*/
     }
     
     private void sendOnCallResult(String s) {
@@ -200,9 +186,6 @@ public class WsService extends Service {
     	message.id = WsConstant.WS_CALL;
     	message.message = s;
     	EventBus.getDefault().post(message);
-        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
-                .putExtra(Consts.WsConstant.WS_CALL, s)
-        );*/
     }
 
     private void sendOnCallError(String s) {
@@ -210,9 +193,6 @@ public class WsService extends Service {
     	message.id = WsConstant.WS_CALL;
     	message.message = s;
     	EventBus.getDefault().post(message);
-        /*sendBroadcast(new Intent(Consts.BroadcastConstant.BROADCAST_ACTION_WS)
-                .putExtra(Consts.WsConstant.WS_CALL, s)
-        );*/
     }
     
     @Nullable
@@ -244,7 +224,7 @@ public class WsService extends Service {
 	    @Override
 	    public void run() {
 	    	doHeartBeatTask();
-	    	handler.postDelayed(this, 6000);
+	    	handler.postDelayed(this, WsManager.mHeartBeatPeriodInMillis);
 	    }
 	};
 	
